@@ -1,34 +1,32 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using TrafficLight.Api.Models;
+
+// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace TrafficLight.Api.Controllers
 {
     [Route("api/[controller]")]
     public class TrafficLightController : Controller
     {
-        private static TrafficLightModel CurrentTrafficLight = new TrafficLightModel();
+        private static TrafficLightState CurrentTrafficLightState;
 
         // GET api/values
         [HttpGet]
-        public TrafficLightModel Get()
+        public TrafficLightState Get()
         {
-            return CurrentTrafficLight;
+            return CurrentTrafficLightState;
         }
 
-        [HttpPut("set/{color}/{state}")]
-        public TrafficLightModel SetLight(LightColor color, LightState state)
+        [HttpPut("{state}")]
+        public TrafficLightState Set(TrafficLightState state)
         {
-            CurrentTrafficLight.SetLight(color, state);
+            CurrentTrafficLightState = state;
 
-            return CurrentTrafficLight;
-        }
-
-        [HttpPost("switch/{color}")]
-        public TrafficLightModel SwitchLight(LightColor color)
-        {
-            CurrentTrafficLight.SwitchLight(color);
-
-            return CurrentTrafficLight;
+            return CurrentTrafficLightState;
         }
     }
 }
