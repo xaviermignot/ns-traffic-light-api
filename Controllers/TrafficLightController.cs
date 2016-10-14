@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using TrafficLight.Api.Models;
+using TrafficLight.Api.Business.Contract;
+using TrafficLight.Api.Business.Logic;
+using System;
 
 namespace TrafficLight.Api.Controllers
 {
@@ -9,10 +12,7 @@ namespace TrafficLight.Api.Controllers
     [Route("api/[controller]")]
     public class TrafficLightController : Controller
     {
-        /// <summary>
-        /// Static instance of the only traffic light managed by the api
-        /// </summary>
-        private static TrafficLightState CurrentTrafficLightState;
+        private static Lazy<ITrafficLightService> _trafficLightSvc = new Lazy<ITrafficLightService>(() => new TrafficLightService()); 
 
         /// <summary>
         /// Gets the current state of the traffic light
@@ -21,7 +21,7 @@ namespace TrafficLight.Api.Controllers
         [HttpGet]
         public TrafficLightState Get()
         {
-            return CurrentTrafficLightState;
+            return _trafficLightSvc.Value.Get();
         }
 
         /// <summary>
@@ -33,9 +33,9 @@ namespace TrafficLight.Api.Controllers
         public TrafficLightState SwitchOn(TrafficLightState state)
         {
             //TODO: return bad request if state == Off
-            CurrentTrafficLightState = state;
+            _trafficLightSvc.Value.Set(state);
 
-            return CurrentTrafficLightState;
+            return _trafficLightSvc.Value.Get();
         }
 
         /// <summary>
@@ -45,9 +45,9 @@ namespace TrafficLight.Api.Controllers
         [HttpDelete]
         public TrafficLightState SwitchOff()
         {
-            CurrentTrafficLightState = TrafficLightState.Off;
+            _trafficLightSvc.Value.Set(TrafficLightState.Off);
 
-            return CurrentTrafficLightState;
+            return _trafficLightSvc.Value.Get();
         }
     }
 }

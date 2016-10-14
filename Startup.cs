@@ -32,10 +32,10 @@ namespace TrafficLight.Api
             });
 
             Auth.ApplicationCredentials = new TwitterCredentials(
-                Configuration["TwitterApi:ConsumerKey"],
-                Configuration["TwitterApi:ConsumerSecret"],
-                Configuration["TwitterApi:Token"],
-                Configuration["TwitterApi:TokenSecret"]);
+                Configuration["TwitterApi:Credentials:ConsumerKey"],
+                Configuration["TwitterApi:Credentials:ConsumerSecret"],
+                Configuration["TwitterApi:Credentials:Token"],
+                Configuration["TwitterApi:Credentials:TokenSecret"]);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -43,6 +43,10 @@ namespace TrafficLight.Api
         {
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
+
+            TweetBackgroundWatcher.LazyInstance.Value.RedLightTrack = Configuration["TwitterApi:Keywords:RedLight"];
+            TweetBackgroundWatcher.LazyInstance.Value.OrangeLightTrack = Configuration["TwitterApi:Keywords:OrangeLight"];
+            TweetBackgroundWatcher.LazyInstance.Value.GreenLightTrack = Configuration["TwitterApi:Keywords:GreenLight"];
 
             appLifeTime.ApplicationStarted.Register(() => TweetBackgroundWatcher.LazyInstance.Value.StartWatching());
             appLifeTime.ApplicationStopping.Register(() => TweetBackgroundWatcher.LazyInstance.Value.StopWatching());

@@ -1,9 +1,9 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
+using TrafficLight.Api.Business.Contract;
+using TrafficLight.Api.Business.Logic;
+using TrafficLight.Api.Models;
 using Tweetinvi;
-using Tweetinvi.Models;
 using Tweetinvi.Streaming;
 
 namespace TrafficLight.Api
@@ -13,21 +13,44 @@ namespace TrafficLight.Api
         internal static Lazy<TweetBackgroundWatcher> LazyInstance = new Lazy<TweetBackgroundWatcher>(
             () => new TweetBackgroundWatcher());
 
-        public ICollection<ITweet> Tweets = new List<ITweet>();
+        private Lazy<ITrafficLightService> _trafficLightSvc = new Lazy<ITrafficLightService>(() => new TrafficLightService());
+
+        public string RedLightTrack { get; set; }
+
+        public string OrangeLightTrack { get; set; }
+
+        public string GreenLightTrack { get; set; }
 
         private IFilteredStream _stream;
 
         public void StartWatching()
         {
             _stream = Stream.CreateFilteredStream();
-            _stream.AddTrack("#experiences");
+            _stream.AddTrack(RedLightTrack);
+            _stream.AddTrack(OrangeLightTrack);
+            _stream.AddTrack(GreenLightTrack);
 
-            _stream.MatchingTweetReceived += (sender, args) => 
+            _stream.MatchingTweetReceived += (sender, args) =>
             {
-                Tweets.Add(args.Tweet);
+                var matchingTrack = args.MatchingTracks?.FirstOrDefault();
+
+                if (matchingTrack.Equals(this.RedLightTrack, StringComparison.OrdinalIgnoreCase))
+                {
+                    _trafficLightSvc.Value.Set(TrafficLightState.Red);
+                }
+
+                if (matchingTrack.Equals(this.OrangeLightTrack, StringComparison.OrdinalIgnoreCase))
+                {
+                    _trafficLightSvc.Value.Set(TrafficLightState.Orange);
+                }
+
+                if (matchingTrack.Equals(this.GreenLightTrack, StringComparison.OrdinalIgnoreCase))
+                {
+                    _trafficLightSvc.Value.Set(TrafficLightState.Green);
+                }
             };
 
-            _stream.StartStreamMatchingAllConditions();
+            _stream.StartStreamMatchingAnyCondition();
         }
 
         public void StopWatching()
