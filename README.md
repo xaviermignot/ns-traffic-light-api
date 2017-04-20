@@ -1,39 +1,24 @@
-# Welcome to ASP.NET Core
+# Traffic Light Api
 
-We've made some big updates in this release, so it’s **important** that you spend a few minutes to learn what’s new.
+This is a simple Api written in aspnet core to simulate the behavior of a traffic light.
+The Api is used by the [Traffic Light Bot](https://github.com/xaviermignot/ns-traffic-light-bot) and polled by a UWP application running on a Raspberry Pi to control a "real" traffic light.
 
-You've created a new ASP.NET Core project. [Learn what's new](https://go.microsoft.com/fwlink/?LinkId=518016)
+The global purpose of this project is just to have fun and present cool tech at local events and meetups.
 
-## This application consists of:
+## How to run the Api
 
-*   Sample pages using ASP.NET Core MVC
-*   [Bower](https://go.microsoft.com/fwlink/?LinkId=518004) for managing client-side libraries
-*   Theming using [Bootstrap](https://go.microsoft.com/fwlink/?LinkID=398939)
+* Install [.NET Core](https://www.microsoft.com/net/core) if you haven't already 
+* Clone the repo
+* Restore the packages with a `dotnet restore` command
+* Run the app with a `dotnet watch run` command, this will run a background process watching for your changes in the code and automagically compile them
 
-## How to
+## How to use the Api
 
-*   [Add a Controller and View](https://go.microsoft.com/fwlink/?LinkID=398600)
-*   [Add an appsetting in config and access it in app.](https://go.microsoft.com/fwlink/?LinkID=699562)
-*   [Manage User Secrets using Secret Manager.](https://go.microsoft.com/fwlink/?LinkId=699315)
-*   [Use logging to log a message.](https://go.microsoft.com/fwlink/?LinkId=699316)
-*   [Add packages using NuGet.](https://go.microsoft.com/fwlink/?LinkId=699317)
-*   [Add client packages using Bower.](https://go.microsoft.com/fwlink/?LinkId=699318)
-*   [Target development, staging or production environment.](https://go.microsoft.com/fwlink/?LinkId=699319)
+* Perform a **GET** on the route `api/trafficlight` to get the state of the traffic light. The state can be `Off`, `Green`, `Orange` or `Red` 
+* Perform a **PUT** on the route `api/trafficlight/{color}` to light a bulb, the value of `{color}` can be `green`, `orange` or `red`
+* Perform a **DELETE** on the route `api/trafficlight` to switch the light off
 
-## Overview
+## Twitter integration
 
-*   [Conceptual overview of what is ASP.NET Core](https://go.microsoft.com/fwlink/?LinkId=518008)
-*   [Fundamentals of ASP.NET Core such as Startup and middleware.](https://go.microsoft.com/fwlink/?LinkId=699320)
-*   [Working with Data](https://go.microsoft.com/fwlink/?LinkId=398602)
-*   [Security](https://go.microsoft.com/fwlink/?LinkId=398603)
-*   [Client side development](https://go.microsoft.com/fwlink/?LinkID=699321)
-*   [Develop on different platforms](https://go.microsoft.com/fwlink/?LinkID=699322)
-*   [Read more on the documentation site](https://go.microsoft.com/fwlink/?LinkID=699323)
-
-## Run & Deploy
-
-*   [Run your app](https://go.microsoft.com/fwlink/?LinkID=517851)
-*   [Run tools such as EF migrations and more](https://go.microsoft.com/fwlink/?LinkID=517853)
-*   [Publish to Microsoft Azure Web Apps](https://go.microsoft.com/fwlink/?LinkID=398609)
-
-We would love to hear your [feedback](https://go.microsoft.com/fwlink/?LinkId=518015)
+At the app startup, an instance of the `TweetBackgroundWatcher` class is created and starts watching for tweets with specific hashtags in order to change the traffic light state.
+The twitter Api credentials and the hashtags can be configured in the `appsettings.json` file.
