@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using TrafficLight.Api.Hubs;
 using Tweetinvi;
 using Tweetinvi.Models;
 
@@ -30,6 +31,10 @@ namespace TrafficLight.Api
             {
                 opt.SerializerSettings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter());
             });
+            services.AddSignalR(opt =>
+            {
+                opt.Hubs.EnableDetailedErrors = true;
+            });
 
             Auth.ApplicationCredentials = new TwitterCredentials(
                 Configuration["TwitterApi:Credentials:ConsumerKey"],
@@ -52,6 +57,8 @@ namespace TrafficLight.Api
             appLifeTime.ApplicationStopping.Register(() => TweetBackgroundWatcher.LazyInstance.Value.StopWatching());
 
             app.UseMvc();
+
+            app.UseSignalR();
         }
     }
 }
