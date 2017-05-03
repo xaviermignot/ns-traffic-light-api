@@ -1,7 +1,10 @@
 using System;
 using System.Linq;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR.Infrastructure;
 using TrafficLight.Api.Business.Contract;
 using TrafficLight.Api.Business.Logic;
+using TrafficLight.Api.Hubs;
 using TrafficLight.Api.Models;
 using Tweetinvi;
 using Tweetinvi.Streaming;
@@ -10,8 +13,9 @@ namespace TrafficLight.Api
 {
     internal class TweetBackgroundWatcher
     {
-        internal static Lazy<TweetBackgroundWatcher> LazyInstance = new Lazy<TweetBackgroundWatcher>(
-            () => new TweetBackgroundWatcher());
+        internal static Lazy<TweetBackgroundWatcher> LazyInstance;
+
+        private readonly IHubContext _hub;
 
         private Lazy<ITrafficLightService> _trafficLightSvc = new Lazy<ITrafficLightService>(() => new TrafficLightService());
 
@@ -23,6 +27,17 @@ namespace TrafficLight.Api
 
         private IFilteredStream _stream;
 
+        private TweetBackgroundWatcher(IConnectionManager connectionManager)
+        {
+            _hub = connectionManager.GetHubContext<TrafficLightHub>();
+        }
+
+        public static void Initialize(IConnectionManager connectionManager)
+        {
+            LazyInstance = new Lazy<TweetBackgroundWatcher>(
+                () => new TweetBackgroundWatcher(connectionManager));
+        }
+
         public void StartWatching()
         {
             _stream = Stream.CreateFilteredStream();
@@ -33,21 +48,9 @@ namespace TrafficLight.Api
             _stream.MatchingTweetReceived += (sender, args) =>
             {
                 var matchingTrack = args.MatchingTracks?.FirstOrDefault();
-
-                if (matchingTrack.Equals(this.RedLightTrack, StringComparison.OrdinalIgnoreCase))
-                {
-                    _trafficLightSvc.Value.Set(TrafficLightState.Red);
-                }
-
-                if (matchingTrack.Equals(this.OrangeLightTrack, StringComparison.OrdinalIgnoreCase))
-                {
-                    _trafficLightSvc.Value.Set(TrafficLightState.Orange);
-                }
-
-                if (matchingTrack.Equals(this.GreenLightTrack, StringComparison.OrdinalIgnoreCase))
-                {
-                    _trafficLightSvc.Value.Set(TrafficLightState.Green);
-                }
+                var lightState = GetTrafficLightStateFromTrack(matchingTrack);
+                _trafficLightSvc.Value.Set(lightState);
+                _hub.Clients.All.UpdateLight(lightState);
             };
 
             _stream.StartStreamMatchingAnyCondition();
@@ -56,6 +59,26 @@ namespace TrafficLight.Api
         public void StopWatching()
         {
             _stream.StopStream();
+        }
+
+        private TrafficLightState GetTrafficLightStateFromTrack(string track)
+        {
+            if (track.Equals(this.RedLightTrack, StringComparison.Ordinal))
+            {
+                return TrafficLightState.Red;
+            }
+
+            if (track.Equals(this.OrangeLightTrack, StringComparison.OrdinalIgnoreCase))
+            {
+                return TrafficLightState.Orange;
+            }
+
+            if (track.Equals(this.GreenLightTrack, StringComparison.OrdinalIgnoreCase))
+            {
+                return TrafficLightState.Green;
+            }
+
+            throw new NotSupportedException($"The {track} value is not supported by the TweetBackgroundWatcher class");
         }
     }
 }

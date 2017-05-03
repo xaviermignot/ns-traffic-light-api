@@ -1,5 +1,7 @@
+using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.SignalR.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -44,10 +46,12 @@ namespace TrafficLight.Api
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory, IApplicationLifetime appLifeTime)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory, IApplicationLifetime appLifeTime, IServiceProvider serviceProvider)
         {
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
+
+            TweetBackgroundWatcher.Initialize(serviceProvider.GetService<IConnectionManager>());
 
             TweetBackgroundWatcher.LazyInstance.Value.RedLightTrack = Configuration["TwitterApi:Keywords:RedLight"];
             TweetBackgroundWatcher.LazyInstance.Value.OrangeLightTrack = Configuration["TwitterApi:Keywords:OrangeLight"];
