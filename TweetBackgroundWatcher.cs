@@ -63,7 +63,7 @@ namespace TrafficLight.Api
 
         private TrafficLightState GetTrafficLightStateFromTrack(string track)
         {
-            if (track.Equals(this.RedLightTrack, StringComparison.Ordinal))
+            if (track.Equals(this.RedLightTrack, StringComparison.OrdinalIgnoreCase))
             {
                 return TrafficLightState.Red;
             }
