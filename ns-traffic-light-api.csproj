@@ -28,6 +28,7 @@
     <PackageReference Include="TweetinviAPI" Version="1.2.0.1"/>
     <PackageReference Include="Newtonsoft.Json" Version="10.0.2"/>
     <PackageReference Include="Microsoft.AspNetCore.WebSockets" Version="1.0.1"/>
+    <PackageReference Include="WindowsAzure.Storage" Version="8.1.1"/>
   </ItemGroup>
   <ItemGroup>
     <DotNetCliToolReference Include="Microsoft.DotNet.Watcher.Tools" Version="1.0.0"/>

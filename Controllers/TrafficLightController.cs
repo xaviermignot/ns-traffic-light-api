@@ -6,6 +6,11 @@ using System;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Infrastructure;
 using TrafficLight.Api.Hubs;
+using Microsoft.Extensions.Options;
+using TrafficLight.Api.Configuration;
+using Microsoft.WindowsAzure.Storage;
+using System.Threading.Tasks;
+using Microsoft.WindowsAzure.Storage.Queue;
 
 namespace TrafficLight.Api.Controllers
 {
@@ -17,10 +22,12 @@ namespace TrafficLight.Api.Controllers
     {
         private Lazy<ITrafficLightService> _trafficLightSvc = new Lazy<ITrafficLightService>(() => new TrafficLightService());
         private readonly IHubContext _hub;
+        private readonly AzureSettings _azureSettings;
 
-        public TrafficLightController(IConnectionManager signalRConnectionManager)
+        public TrafficLightController(IConnectionManager signalRConnectionManager, IOptions<AzureSettings> azureSection)
         {
-             _hub = signalRConnectionManager.GetHubContext<TrafficLightHub>();
+            _hub = signalRConnectionManager.GetHubContext<TrafficLightHub>();
+            _azureSettings = azureSection.Value;
         }
 
         /// <summary>
@@ -39,12 +46,21 @@ namespace TrafficLight.Api.Controllers
         /// <param name="state">The light to turn on</param>
         /// <returns>The resulting state of the traffic light</returns>
         [HttpPut("{state}")]
-        public TrafficLightState SwitchOn(TrafficLightState state)
+        public async Task<TrafficLightState> SwitchOn(TrafficLightState state)
         {
             //TODO: return bad request if state == Off
             _trafficLightSvc.Value.Set(state);
 
             _hub.Clients.All.UpdateLight(state);
+
+            if (state == TrafficLightState.Broken)
+            {
+                var storageAccount = CloudStorageAccount.Parse(_azureSettings.StorageConnectionString);
+                var queueClient = storageAccount.CreateCloudQueueClient();
+                var queue = queueClient.GetQueueReference("proactive-messages");
+                await queue.CreateIfNotExistsAsync();
+                await queue.AddMessageAsync(new CloudQueueMessage("Hello from the API"));
+            }
 
             return _trafficLightSvc.Value.Get();
         }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SignalR.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using TrafficLight.Api.Configuration;
 using TrafficLight.Api.Hubs;
 using Tweetinvi;
 using Tweetinvi.Models;
@@ -37,6 +38,8 @@ namespace TrafficLight.Api
             {
                 opt.Hubs.EnableDetailedErrors = true;
             });
+
+            services.Configure<AzureSettings>(Configuration.GetSection("Azure"));
 
             Auth.ApplicationCredentials = new TwitterCredentials(
                 Configuration["TwitterApi:Credentials:ConsumerKey"],
