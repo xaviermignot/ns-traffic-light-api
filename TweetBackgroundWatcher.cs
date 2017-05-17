@@ -25,6 +25,8 @@ namespace TrafficLight.Api
 
         public string GreenLightTrack { get; set; }
 
+        public string ProactiveMessageTrack { get; set; }
+
         private IFilteredStream _stream;
 
         private TweetBackgroundWatcher(IConnectionManager connectionManager)
@@ -48,9 +50,19 @@ namespace TrafficLight.Api
             _stream.MatchingTweetReceived += (sender, args) =>
             {
                 var matchingTrack = args.MatchingTracks?.FirstOrDefault();
-                var lightState = GetTrafficLightStateFromTrack(matchingTrack);
-                _trafficLightSvc.Value.Set(lightState);
-                _hub.Clients.All.UpdateLight(lightState);
+
+                if (TryGetTrafficLightStateFromTrack(matchingTrack, out TrafficLightState lightState))
+                {
+                    _trafficLightSvc.Value.Set(lightState);
+                    _hub.Clients.All.UpdateLight(lightState);
+                    return;
+                }
+
+                if (matchingTrack.Equals(this.ProactiveMessageTrack, StringComparison.OrdinalIgnoreCase)
+                    && _trafficLightSvc.Value.Get() == TrafficLightState.Broken)
+                {
+                    // Send message in storage queue   
+                }
             };
 
             _stream.StartStreamMatchingAnyCondition();
@@ -61,24 +73,28 @@ namespace TrafficLight.Api
             _stream.StopStream();
         }
 
-        private TrafficLightState GetTrafficLightStateFromTrack(string track)
+        private bool TryGetTrafficLightStateFromTrack(string track, out TrafficLightState state)
         {
             if (track.Equals(this.RedLightTrack, StringComparison.OrdinalIgnoreCase))
             {
-                return TrafficLightState.Red;
+                state = TrafficLightState.Red;
+                return true;
             }
 
             if (track.Equals(this.OrangeLightTrack, StringComparison.OrdinalIgnoreCase))
             {
-                return TrafficLightState.Orange;
+                state = TrafficLightState.Orange;
+                return true;
             }
 
             if (track.Equals(this.GreenLightTrack, StringComparison.OrdinalIgnoreCase))
             {
-                return TrafficLightState.Green;
+                state = TrafficLightState.Green;
+                return true;
             }
 
-            throw new NotSupportedException($"The {track} value is not supported by the TweetBackgroundWatcher class");
+            state = TrafficLightState.Off;
+            return false;
         }
     }
 }

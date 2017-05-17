@@ -11,7 +11,6 @@ using TrafficLight.Api.Configuration;
 using Microsoft.WindowsAzure.Storage;
 using System.Threading.Tasks;
 using Microsoft.WindowsAzure.Storage.Queue;
-using Microsoft.Azure.ServiceBus;
 using System.Text;
 
 namespace TrafficLight.Api.Controllers
@@ -61,11 +60,7 @@ namespace TrafficLight.Api.Controllers
                 var queueClient = storageAccount.CreateCloudQueueClient();
                 var queue = queueClient.GetQueueReference("proactive-messages");
                 await queue.CreateIfNotExistsAsync();
-                await queue.AddMessageAsync(new CloudQueueMessage("Hello from the API"));
-
-                var sbQueueClient = new QueueClient(_azureSettings.ServiceBusConnectionString, "proactive-messages", ReceiveMode.ReceiveAndDelete);
-                await sbQueueClient.SendAsync(new Message(Encoding.UTF8.GetBytes("Hello sb from the API")));
-                await sbQueueClient.CloseAsync();
+                await queue.AddMessageAsync(new CloudQueueMessage("Le feu est cassé :'("));
             }
 
             return _trafficLightSvc.Value.Get();
