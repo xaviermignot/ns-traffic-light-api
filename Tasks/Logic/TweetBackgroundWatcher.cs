@@ -2,50 +2,48 @@ using System;
 using System.Linq;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Infrastructure;
+using Microsoft.Extensions.Options;
 using TrafficLight.Api.Business.Contract;
 using TrafficLight.Api.Business.Logic;
+using TrafficLight.Api.Configuration;
 using TrafficLight.Api.Hubs;
 using TrafficLight.Api.Models;
+using TrafficLight.Api.Tasks.Contract;
 using Tweetinvi;
 using Tweetinvi.Streaming;
 
-namespace TrafficLight.Api
+namespace TrafficLight.Api.Tasks.Logic
 {
-    internal class TweetBackgroundWatcher
+    internal class TweetBackgroundWatcher : ITweetBackgroundWatcher
     {
-        internal static Lazy<TweetBackgroundWatcher> LazyInstance;
-
         private readonly IHubContext _hub;
 
-        private Lazy<ITrafficLightService> _trafficLightSvc = new Lazy<ITrafficLightService>(() => new TrafficLightService());
+        private readonly ITrafficLightService _trafficLightSvc;
 
-        public string RedLightTrack { get; set; }
+        private readonly IMessagingService _messagingSvc;
 
-        public string OrangeLightTrack { get; set; }
-
-        public string GreenLightTrack { get; set; }
-
-        public string ProactiveMessageTrack { get; set; }
+        private readonly TwitterSettings _twitterSettings;
 
         private IFilteredStream _stream;
 
-        private TweetBackgroundWatcher(IConnectionManager connectionManager)
+        public TweetBackgroundWatcher(
+            IConnectionManager connectionManager,
+            ITrafficLightService trafficLightSvc,
+            IMessagingService messagingSvc,
+            IOptions<TwitterSettings> twitterSettings)
         {
             _hub = connectionManager.GetHubContext<TrafficLightHub>();
-        }
-
-        public static void Initialize(IConnectionManager connectionManager)
-        {
-            LazyInstance = new Lazy<TweetBackgroundWatcher>(
-                () => new TweetBackgroundWatcher(connectionManager));
+            _trafficLightSvc = trafficLightSvc;
+            _messagingSvc = messagingSvc;
+            _twitterSettings = twitterSettings.Value;
         }
 
         public void StartWatching()
         {
             _stream = Stream.CreateFilteredStream();
-            _stream.AddTrack(RedLightTrack);
-            _stream.AddTrack(OrangeLightTrack);
-            _stream.AddTrack(GreenLightTrack);
+            _stream.AddTrack(_twitterSettings.RedLight);
+            _stream.AddTrack(_twitterSettings.OrangeLight);
+            _stream.AddTrack(_twitterSettings.GreenLight);
 
             _stream.MatchingTweetReceived += (sender, args) =>
             {
@@ -53,15 +51,15 @@ namespace TrafficLight.Api
 
                 if (TryGetTrafficLightStateFromTrack(matchingTrack, out TrafficLightState lightState))
                 {
-                    _trafficLightSvc.Value.Set(lightState);
+                    _trafficLightSvc.Set(lightState);
                     _hub.Clients.All.UpdateLight(lightState);
                     return;
                 }
 
-                if (matchingTrack.Equals(this.ProactiveMessageTrack, StringComparison.OrdinalIgnoreCase)
-                    && _trafficLightSvc.Value.Get() == TrafficLightState.Broken)
+                if (matchingTrack.Equals(_twitterSettings.ProactiveMessage, StringComparison.OrdinalIgnoreCase)
+                    && _trafficLightSvc.Get() == TrafficLightState.Broken)
                 {
-                    // Send message in storage queue   
+                    _messagingSvc.SendMessage(args.Tweet.Text);
                 }
             };
 
@@ -75,19 +73,19 @@ namespace TrafficLight.Api
 
         private bool TryGetTrafficLightStateFromTrack(string track, out TrafficLightState state)
         {
-            if (track.Equals(this.RedLightTrack, StringComparison.OrdinalIgnoreCase))
+            if (track.Equals(_twitterSettings.RedLight, StringComparison.OrdinalIgnoreCase))
             {
                 state = TrafficLightState.Red;
                 return true;
             }
 
-            if (track.Equals(this.OrangeLightTrack, StringComparison.OrdinalIgnoreCase))
+            if (track.Equals(_twitterSettings.OrangeLight, StringComparison.OrdinalIgnoreCase))
             {
                 state = TrafficLightState.Orange;
                 return true;
             }
 
-            if (track.Equals(this.GreenLightTrack, StringComparison.OrdinalIgnoreCase))
+            if (track.Equals(_twitterSettings.GreenLight, StringComparison.OrdinalIgnoreCase))
             {
                 state = TrafficLightState.Green;
                 return true;

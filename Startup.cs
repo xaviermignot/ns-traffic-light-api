@@ -5,8 +5,12 @@ using Microsoft.AspNetCore.SignalR.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using TrafficLight.Api.Business.Contract;
+using TrafficLight.Api.Business.Logic;
 using TrafficLight.Api.Configuration;
 using TrafficLight.Api.Hubs;
+using TrafficLight.Api.Tasks.Contract;
+using TrafficLight.Api.Tasks.Logic;
 using Tweetinvi;
 using Tweetinvi.Models;
 
@@ -40,6 +44,12 @@ namespace TrafficLight.Api
             });
 
             services.Configure<AzureSettings>(Configuration.GetSection("Azure"));
+            services.Configure<TwitterSettings>(Configuration.GetSection("TwitterApi:Keywords"));
+
+            services.AddTransient<ITrafficLightService, TrafficLightService>();
+            services.AddTransient<IMessagingService, StorageQueueMessagingService>();
+
+            services.AddSingleton<ITweetBackgroundWatcher, TweetBackgroundWatcher>();
 
             Auth.ApplicationCredentials = new TwitterCredentials(
                 Configuration["TwitterApi:Credentials:ConsumerKey"],
@@ -49,19 +59,19 @@ namespace TrafficLight.Api
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory, IApplicationLifetime appLifeTime, IServiceProvider serviceProvider)
+        public void Configure(
+            IApplicationBuilder app,
+            IHostingEnvironment env,
+            ILoggerFactory loggerFactory,
+            IApplicationLifetime appLifeTime,
+            IServiceProvider serviceProvider,
+            ITweetBackgroundWatcher tweetWatcher)
         {
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
 
-            TweetBackgroundWatcher.Initialize(serviceProvider.GetService<IConnectionManager>());
-
-            TweetBackgroundWatcher.LazyInstance.Value.RedLightTrack = Configuration["TwitterApi:Keywords:RedLight"];
-            TweetBackgroundWatcher.LazyInstance.Value.OrangeLightTrack = Configuration["TwitterApi:Keywords:OrangeLight"];
-            TweetBackgroundWatcher.LazyInstance.Value.GreenLightTrack = Configuration["TwitterApi:Keywords:GreenLight"];
-
-            appLifeTime.ApplicationStarted.Register(() => TweetBackgroundWatcher.LazyInstance.Value.StartWatching());
-            appLifeTime.ApplicationStopping.Register(() => TweetBackgroundWatcher.LazyInstance.Value.StopWatching());
+            appLifeTime.ApplicationStarted.Register(() => tweetWatcher.StartWatching());
+            appLifeTime.ApplicationStopping.Register(() => tweetWatcher.StopWatching());
 
             app.UseMvc();
 
