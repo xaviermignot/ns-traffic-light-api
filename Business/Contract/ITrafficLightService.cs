@@ -5,7 +5,7 @@ namespace TrafficLight.Api.Business.Contract
     /// <summary>
     /// Describe the contract of the  traffic light management service
     /// </summary>
-    interface ITrafficLightService
+    public interface ITrafficLightService
     {
         /// <summary>
         /// Returns the current state of the traffic light

@@ -6,6 +6,12 @@ using System;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Infrastructure;
 using TrafficLight.Api.Hubs;
+using Microsoft.Extensions.Options;
+using TrafficLight.Api.Configuration;
+using Microsoft.WindowsAzure.Storage;
+using System.Threading.Tasks;
+using Microsoft.WindowsAzure.Storage.Queue;
+using System.Text;
 
 namespace TrafficLight.Api.Controllers
 {
@@ -15,12 +21,18 @@ namespace TrafficLight.Api.Controllers
     [Route("api/[controller]")]
     public class TrafficLightController : Controller
     {
-        private Lazy<ITrafficLightService> _trafficLightSvc = new Lazy<ITrafficLightService>(() => new TrafficLightService());
+        private ITrafficLightService _trafficLightSvc;
         private readonly IHubContext _hub;
+        private readonly IMessagingService _messagingSvc;
 
-        public TrafficLightController(IConnectionManager signalRConnectionManager)
+        public TrafficLightController(
+            IConnectionManager signalRConnectionManager, 
+            ITrafficLightService trafficLightSvc,
+            IMessagingService messagingSvc)
         {
-             _hub = signalRConnectionManager.GetHubContext<TrafficLightHub>();
+            _hub = signalRConnectionManager.GetHubContext<TrafficLightHub>();
+            _trafficLightSvc = trafficLightSvc;
+            _messagingSvc = messagingSvc;
         }
 
         /// <summary>
@@ -30,7 +42,7 @@ namespace TrafficLight.Api.Controllers
         [HttpGet]
         public TrafficLightState Get()
         {
-            return _trafficLightSvc.Value.Get();
+            return _trafficLightSvc.Get();
         }
 
         /// <summary>
@@ -39,14 +51,19 @@ namespace TrafficLight.Api.Controllers
         /// <param name="state">The light to turn on</param>
         /// <returns>The resulting state of the traffic light</returns>
         [HttpPut("{state}")]
-        public TrafficLightState SwitchOn(TrafficLightState state)
+        public async Task<TrafficLightState> SwitchOn(TrafficLightState state)
         {
             //TODO: return bad request if state == Off
-            _trafficLightSvc.Value.Set(state);
+            _trafficLightSvc.Set(state);
 
             _hub.Clients.All.UpdateLight(state);
 
-            return _trafficLightSvc.Value.Get();
+            if (state == TrafficLightState.Broken)
+            {
+                await _messagingSvc.SendMessage("Le feu est cassé :'(");
+            }
+
+            return _trafficLightSvc.Get();
         }
 
         /// <summary>
@@ -56,10 +73,10 @@ namespace TrafficLight.Api.Controllers
         [HttpDelete]
         public TrafficLightState SwitchOff()
         {
-            _trafficLightSvc.Value.Set(TrafficLightState.Off);
+            _trafficLightSvc.Set(TrafficLightState.Off);
             _hub.Clients.All.UpdateLight(TrafficLightState.Off);
 
-            return _trafficLightSvc.Value.Get();
+            return _trafficLightSvc.Get();
         }
     }
 }
