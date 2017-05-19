@@ -50,15 +50,17 @@ namespace TrafficLight.Api.Tasks.Logic
             {
                 var matchingTrack = args.MatchingTracks?.FirstOrDefault();
 
-                if (TryGetTrafficLightStateFromTrack(matchingTrack, out TrafficLightState lightState))
+                // Change the light from Twitter only if the light is not "broken"
+                if (_trafficLightSvc.Get() != TrafficLightState.Broken
+                    && TryGetTrafficLightStateFromTrack(matchingTrack, out TrafficLightState lightState))
                 {
                     _trafficLightSvc.Set(lightState);
                     _hub.Clients.All.UpdateLight(lightState);
                     return;
                 }
 
-                if (matchingTrack.Equals(_twitterSettings.ProactiveMessage, StringComparison.OrdinalIgnoreCase)
-                    && _trafficLightSvc.Get() == TrafficLightState.Broken)
+                // Send proactive message though storage queue
+                if (matchingTrack.Equals(_twitterSettings.ProactiveMessage, StringComparison.OrdinalIgnoreCase))
                 {
                     _messagingSvc.SendMessage(args.Tweet.Text);
                 }
