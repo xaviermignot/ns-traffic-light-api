@@ -44,6 +44,7 @@ namespace TrafficLight.Api.Tasks.Logic
             _stream.AddTrack(_twitterSettings.RedLight);
             _stream.AddTrack(_twitterSettings.OrangeLight);
             _stream.AddTrack(_twitterSettings.GreenLight);
+            _stream.AddTrack(_twitterSettings.ProactiveMessage);
 
             _stream.MatchingTweetReceived += (sender, args) =>
             {
