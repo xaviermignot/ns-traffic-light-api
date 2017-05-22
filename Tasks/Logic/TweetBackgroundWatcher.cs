@@ -59,7 +59,12 @@ namespace TrafficLight.Api.Tasks.Logic
                 if (matchingTrack.Equals(_twitterSettings.ProactiveMessage, StringComparison.OrdinalIgnoreCase)
                     && _trafficLightSvc.Get() == TrafficLightState.Broken)
                 {
-                    _messagingSvc.SendMessage(args.Tweet.Text);
+                    _messagingSvc.SendMessage(
+                        new Models.Message
+                        {
+                            Text = args.Tweet.Text,
+                            Type = "Sale"
+                        });
                 }
             };
 

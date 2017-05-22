@@ -60,7 +60,12 @@ namespace TrafficLight.Api.Controllers
 
             if (state == TrafficLightState.Broken)
             {
-                await _messagingSvc.SendMessage("Le feu est cassé :'(");
+                await _messagingSvc.SendMessage(
+                    new Message
+                    {
+                        Text =  "Le feu est cassé :'(",
+                        Type = "Broken"
+                    });
             }
 
             return _trafficLightSvc.Get();
