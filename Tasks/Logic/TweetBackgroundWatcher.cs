@@ -62,7 +62,12 @@ namespace TrafficLight.Api.Tasks.Logic
                 // Send proactive message though storage queue
                 if (matchingTrack.Equals(_twitterSettings.ProactiveMessage, StringComparison.OrdinalIgnoreCase))
                 {
-                    _messagingSvc.SendMessage(args.Tweet.Text);
+                    _messagingSvc.SendMessage(
+                        new Models.Message
+                        {
+                            Text = args.Tweet.Text,
+                            Type = "Sale"
+                        });
                 }
             };
 
