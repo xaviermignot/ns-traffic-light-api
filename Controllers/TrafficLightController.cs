@@ -4,7 +4,6 @@ using TrafficLight.Api.Business.Contract;
 using TrafficLight.Api.Business.Logic;
 using System;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.AspNetCore.SignalR.Infrastructure;
 using TrafficLight.Api.Hubs;
 using Microsoft.Extensions.Options;
 using TrafficLight.Api.Configuration;
@@ -22,15 +21,15 @@ namespace TrafficLight.Api.Controllers
     public class TrafficLightController : Controller
     {
         private ITrafficLightService _trafficLightSvc;
-        private readonly IHubContext _hub;
+        private readonly IHubContext<TrafficLightHub> _hub;
         private readonly IMessagingService _messagingSvc;
 
         public TrafficLightController(
-            IConnectionManager signalRConnectionManager, 
+            IHubContext<TrafficLightHub> hub, 
             ITrafficLightService trafficLightSvc,
             IMessagingService messagingSvc)
         {
-            _hub = signalRConnectionManager.GetHubContext<TrafficLightHub>();
+            _hub = hub;
             _trafficLightSvc = trafficLightSvc;
             _messagingSvc = messagingSvc;
         }
@@ -56,7 +55,7 @@ namespace TrafficLight.Api.Controllers
             //TODO: return bad request if state == Off
             _trafficLightSvc.Set(state);
 
-            _hub.Clients.All.UpdateLight(state);
+            await _hub.Clients.All.InvokeAsync("UpdateLight", state);
 
             if (state == TrafficLightState.Broken)
             {
@@ -79,7 +78,7 @@ namespace TrafficLight.Api.Controllers
         public TrafficLightState SwitchOff()
         {
             _trafficLightSvc.Set(TrafficLightState.Off);
-            _hub.Clients.All.UpdateLight(TrafficLightState.Off);
+            _hub.Clients.All.InvokeAsync("UpdateLight", TrafficLightState.Off);
 
             return _trafficLightSvc.Get();
         }

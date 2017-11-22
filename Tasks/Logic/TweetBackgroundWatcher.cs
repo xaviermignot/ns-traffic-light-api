@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.AspNetCore.SignalR.Infrastructure;
 using Microsoft.Extensions.Options;
 using TrafficLight.Api.Business.Contract;
 using TrafficLight.Api.Business.Logic;
@@ -16,7 +15,7 @@ namespace TrafficLight.Api.Tasks.Logic
 {
     internal class TweetBackgroundWatcher : ITweetBackgroundWatcher
     {
-        private readonly IHubContext _hub;
+        private readonly IHubContext<TrafficLightHub> _hub;
 
         private readonly ITrafficLightService _trafficLightSvc;
 
@@ -27,12 +26,12 @@ namespace TrafficLight.Api.Tasks.Logic
         private IFilteredStream _stream;
 
         public TweetBackgroundWatcher(
-            IConnectionManager connectionManager,
+            IHubContext<TrafficLightHub> hub,
             ITrafficLightService trafficLightSvc,
             IMessagingService messagingSvc,
             IOptions<TwitterSettings> twitterSettings)
         {
-            _hub = connectionManager.GetHubContext<TrafficLightHub>();
+            _hub = hub;
             _trafficLightSvc = trafficLightSvc;
             _messagingSvc = messagingSvc;
             _twitterSettings = twitterSettings.Value;
@@ -55,7 +54,7 @@ namespace TrafficLight.Api.Tasks.Logic
                     && TryGetTrafficLightStateFromTrack(matchingTrack, out TrafficLightState lightState))
                 {
                     _trafficLightSvc.Set(lightState);
-                    _hub.Clients.All.UpdateLight(lightState);
+                    _hub.Clients.All.InvokeAsync("UpdateLight", lightState);
                     return;
                 }
 

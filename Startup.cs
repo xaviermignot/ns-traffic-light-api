@@ -1,7 +1,7 @@
 using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.SignalR.Infrastructure;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -38,10 +38,7 @@ namespace TrafficLight.Api
             {
                 opt.SerializerSettings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter());
             });
-            services.AddSignalR(opt =>
-            {
-                opt.Hubs.EnableDetailedErrors = true;
-            });
+            services.AddSignalR();
 
             services.Configure<AzureSettings>(Configuration.GetSection("Azure"));
             services.Configure<TwitterSettings>(Configuration.GetSection("TwitterApi:Keywords"));
@@ -75,7 +72,7 @@ namespace TrafficLight.Api
 
             app.UseMvc();
 
-            app.UseSignalR();
+            app.UseSignalR(routes => routes.MapHub<TrafficLightHub>("TrafficLightHub"));
         }
     }
 }
