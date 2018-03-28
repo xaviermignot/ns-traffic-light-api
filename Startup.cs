@@ -72,7 +72,7 @@ namespace TrafficLight.Api
 
             app.UseMvc();
 
-            app.UseSignalR(routes => routes.MapHub<TrafficLightHub>("TrafficLightHub"));
+            app.UseSignalR(routes => routes.MapHub<TrafficLightHub>("/TrafficLightHub"));
         }
     }
 }

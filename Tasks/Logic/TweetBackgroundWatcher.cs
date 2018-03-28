@@ -54,7 +54,7 @@ namespace TrafficLight.Api.Tasks.Logic
                     && TryGetTrafficLightStateFromTrack(matchingTrack, out TrafficLightState lightState))
                 {
                     _trafficLightSvc.Set(lightState);
-                    _hub.Clients.All.InvokeAsync("UpdateLight", lightState);
+                    _hub.Clients.All.SendAsync("UpdateLight", lightState);
                     return;
                 }
 

@@ -55,7 +55,7 @@ namespace TrafficLight.Api.Controllers
             //TODO: return bad request if state == Off
             _trafficLightSvc.Set(state);
 
-            await _hub.Clients.All.InvokeAsync("UpdateLight", state);
+            await _hub.Clients.All.SendAsync("UpdateLight", state);
 
             if (state == TrafficLightState.Broken)
             {
@@ -78,7 +78,7 @@ namespace TrafficLight.Api.Controllers
         public TrafficLightState SwitchOff()
         {
             _trafficLightSvc.Set(TrafficLightState.Off);
-            _hub.Clients.All.InvokeAsync("UpdateLight", TrafficLightState.Off);
+            _hub.Clients.All.SendAsync("UpdateLight", TrafficLightState.Off);
 
             return _trafficLightSvc.Get();
         }
